@@ -23,19 +23,17 @@ const settingsRoutes = require('./routes/settings');
 
 // Connect to DB
 connectDB().then(async () => {
-  if (process.env.NODE_ENV === 'development') {
-    try {
-      const Product = require('./models/Product');
-      const count = await Product.countDocuments();
-      if (count === 0) {
-        console.log('📦 Database is empty. Running auto-seeding...');
-        const { seed } = require('./utils/seeder');
-        await seed();
-        console.log('✅ Auto-seeding completed.');
-      }
-    } catch (err) {
-      console.error('❌ Auto-seeding error:', err);
+  try {
+    const Product = require('./models/Product');
+    const count = await Product.countDocuments();
+    if (count === 0) {
+      console.log('📦 Database is empty. Running auto-seeding...');
+      const { seed } = require('./utils/seeder');
+      await seed();
+      console.log('✅ Auto-seeding completed.');
     }
+  } catch (err) {
+    console.error('❌ Auto-seeding error:', err);
   }
 });
 
