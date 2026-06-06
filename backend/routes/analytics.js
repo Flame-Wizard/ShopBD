@@ -8,14 +8,23 @@ const { protect, requireAdmin, requireAnalyticsKey } = require('../middleware/au
 
 // All analytics routes accept either:
 // 1. Admin JWT token (for in-app dashboard)
-// 2. x-api-key header (for Bizanolytics external connection)
+// 2. x-api-key header (legacy)
+// 3. Authorization: Bearer <api_key> (used by Bizanolytics "Your Website" integration)
 const adminOrApiKey = (req, res, next) => {
-  // Try API key first
-  const apiKey = req.headers['x-api-key'] || req.query.apiKey;
-  if (apiKey && apiKey === process.env.ANALYTICS_API_KEY) {
-    return next();
+  const ANALYTICS_KEY = process.env.ANALYTICS_API_KEY;
+
+  // Check x-api-key header (legacy / direct curl)
+  const xApiKey = req.headers['x-api-key'] || req.query.apiKey;
+  if (xApiKey && xApiKey === ANALYTICS_KEY) return next();
+
+  // Check Authorization: Bearer <api_key>  ← Bizanolytics sends this
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const bearerToken = authHeader.split(' ')[1];
+    if (bearerToken === ANALYTICS_KEY) return next();
   }
-  // Fall back to JWT admin auth
+
+  // Fall back to JWT admin auth (in-app dashboard)
   protect(req, res, () => requireAdmin(req, res, next));
 };
 
