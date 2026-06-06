@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Tag, ShoppingCart, Users, Ticket, Star,
-  BarChart2, Settings, Plug, Menu, X, LogOut, ChevronRight, Store
+  BarChart2, Settings, Zap, Menu, X, LogOut, ChevronRight, Store
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -14,7 +14,7 @@ const navItems = [
   { to: '/admin/customers', label: 'Customers', icon: Users },
   { to: '/admin/coupons', label: 'Coupons', icon: Ticket },
   { to: '/admin/reviews', label: 'Reviews', icon: Star },
-  { to: '/admin/api-integration', label: 'API Integration', icon: Plug },
+  { to: '/admin/api-integration', label: 'Bizanolytics', icon: Zap },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
