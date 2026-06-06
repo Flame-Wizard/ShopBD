@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Filter, Grid3X3, List, SlidersHorizontal, X, Search, ChevronDown } from 'lucide-react';
+import { Filter, Grid3X3, List, SlidersHorizontal, X, Search, ChevronDown, Tag } from 'lucide-react';
 import api from '../../api/axios';
 import ProductCard, { ProductCardSkeleton } from '../../components/ui/ProductCard';
 
@@ -113,8 +113,7 @@ export default function Shop() {
     </div>
   );
 
-  // Need Tag import
-  const { Tag } = require('lucide-react') || { Tag: ({ size }) => null };
+
 
   return (
     <div className="container-page py-8">
