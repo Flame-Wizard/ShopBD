@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 
 let mongod = null;
 
@@ -11,6 +10,7 @@ const connectDB = async () => {
     if (process.env.NODE_ENV === 'development' && (uri.includes('localhost') || uri.includes('127.0.0.1'))) {
       console.log('🔄 Starting MongoDB Memory Server...');
       try {
+        const { MongoMemoryServer } = require('mongodb-memory-server');
         mongod = await MongoMemoryServer.create({
           instance: {
             dbName: 'shopbd',
