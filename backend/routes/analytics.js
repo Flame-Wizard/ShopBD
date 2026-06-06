@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getBizanalyticsProducts,
   getSalesData, getOverview, getRevenueTrend, getTopProducts,
   getSalesByCategory, getSalesByLocation, getSalesByChannel, getInventory
 } = require('../controllers/analyticsController');
@@ -28,6 +29,12 @@ const adminOrApiKey = (req, res, next) => {
   protect(req, res, () => requireAdmin(req, res, next));
 };
 
+// ─── Bizanolytics "Your Website" integration endpoint ───────────────────────
+// Returns: { products: [{id, name, price, category, stock, reviewCount, rating}], endpointUrl }
+// Use THIS URL in Bizanolytics → Integrations → Your Website → API Endpoint URL
+router.get('/products', adminOrApiKey, getBizanalyticsProducts);
+
+// ─── Internal analytics endpoints ───────────────────────────────────────────
 router.get('/sales', adminOrApiKey, getSalesData);
 router.get('/overview', adminOrApiKey, getOverview);
 router.get('/revenue-trend', adminOrApiKey, getRevenueTrend);
@@ -38,3 +45,4 @@ router.get('/by-channel', adminOrApiKey, getSalesByChannel);
 router.get('/inventory', adminOrApiKey, getInventory);
 
 module.exports = router;
+

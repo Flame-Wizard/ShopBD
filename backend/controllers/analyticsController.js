@@ -5,12 +5,14 @@ const User = require('../models/User');
 
 /**
  * ANALYTICS API — For Bizanolytics Integration
- * Authentication: x-api-key header or ?apiKey= query param
+ * Authentication: x-api-key header, Bearer token, or ?apiKey= query param
  * API Key is defined in .env as ANALYTICS_API_KEY
  *
- * Base URL: http://localhost:5000/api/analytics
+ * Base URL: https://shopbd-ncaz.onrender.com/api/analytics
  *
  * Endpoints:
+ *  GET /api/analytics/products        — Bizanolytics "Your Website" integration endpoint
+ *                                       Returns: { products: [{id, name, price, category, stock, reviewCount, rating}], endpointUrl }
  *  GET /api/analytics/sales          — sales rows (Date, Product_Name, Category, Location, Sales_Channel, Units_Sold, Revenue_BDT, Cost_Price, Current_Stock)
  *  GET /api/analytics/overview       — KPI summary (total revenue, orders, customers, products)
  *  GET /api/analytics/revenue-trend  — daily/weekly/monthly revenue
@@ -19,6 +21,41 @@ const User = require('../models/User');
  *  GET /api/analytics/by-location    — sales grouped by location
  *  GET /api/analytics/by-channel     — sales grouped by sales channel
  */
+
+/**
+ * @route  GET /api/analytics/products
+ * @desc   Bizanolytics "Your Website" integration endpoint.
+ *         Returns products in the exact shape that Bizanolytics's normalizeCustom() reads:
+ *         { products: [{id, name, price, category, stock, reviewCount, rating}], endpointUrl }
+ */
+const getBizanalyticsProducts = asyncHandler(async (req, res) => {
+  const products = await Product.find({ isPublished: true })
+    .populate('category', 'name')
+    .select('name sku category stock price salePrice costPrice unitsSold averageRating reviewCount images')
+    .limit(500);
+
+  const endpointUrl = `${req.protocol}://${req.get('host')}/api/analytics/products`;
+
+  res.json({
+    products: products.map((p) => ({
+      id: p.sku || p._id.toString(),
+      name: p.name,
+      price: p.salePrice || p.price,
+      category: p.category?.name || 'Uncategorized',
+      stock: typeof p.stock === 'number' ? p.stock : null,
+      reviewCount: typeof p.reviewCount === 'number' ? p.reviewCount : (typeof p.unitsSold === 'number' ? p.unitsSold : null),
+      rating: typeof p.averageRating === 'number' ? p.averageRating : null,
+    })),
+    endpointUrl,
+    // Also expose meta for transparency
+    meta: {
+      source: 'ShopBD',
+      currency: 'BDT',
+      totalProducts: products.length,
+      generatedAt: new Date().toISOString(),
+    },
+  });
+});
 
 // @route  GET /api/analytics/sales
 // Returns rows matching the required columns for Bizanolytics
@@ -78,6 +115,7 @@ const getSalesData = asyncHandler(async (req, res) => {
     },
   });
 });
+
 
 // @route  GET /api/analytics/overview
 const getOverview = asyncHandler(async (req, res) => {
@@ -247,6 +285,7 @@ const getInventory = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  getBizanalyticsProducts,
   getSalesData,
   getOverview,
   getRevenueTrend,
@@ -256,3 +295,4 @@ module.exports = {
   getSalesByChannel,
   getInventory,
 };
+

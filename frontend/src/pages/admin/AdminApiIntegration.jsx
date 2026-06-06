@@ -4,8 +4,9 @@ import toast from 'react-hot-toast';
 
 const ANALYTICS_API_KEY = import.meta.env.VITE_ANALYTICS_API_KEY || 'shopbd_analytics_api_key_bizanolytics_2024';
 const BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-const SALES_ENDPOINT = `${BASE_URL}/api/analytics/sales`;
+const PRODUCTS_ENDPOINT = `${BASE_URL}/api/analytics/products`;
 const BIZANOLYTICS_URL = 'https://bizanolytics.vercel.app/integrations/ecommerce';
+
 
 export default function AdminApiIntegration() {
   const [showKey, setShowKey] = useState(false);
@@ -24,19 +25,21 @@ export default function AdminApiIntegration() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch(SALES_ENDPOINT, {
+      const res = await fetch(PRODUCTS_ENDPOINT, {
         headers: { Authorization: `Bearer ${ANALYTICS_API_KEY}` },
       });
       const data = await res.json();
-      setTestResult(data.success ? 'ok' : 'error');
-      if (data.success) toast.success(`✅ Working! ${data.count} sales rows ready.`);
-      else toast.error('API responded but returned an error.');
+      const ok = Array.isArray(data.products) && data.products.length > 0;
+      setTestResult(ok ? 'ok' : 'error');
+      if (ok) toast.success(`✅ Working! ${data.products.length} products ready for Bizanolytics.`);
+      else toast.error('API responded but no products array found.');
     } catch {
       setTestResult('error');
       toast.error('Could not reach the API. Is your backend running?');
     }
     setTesting(false);
   };
+
 
   const CopyBtn = ({ value, field }) => (
     <button
@@ -90,11 +93,11 @@ export default function AdminApiIntegration() {
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               Field 1 — API Endpoint URL
             </label>
-            <CopyBtn value={SALES_ENDPOINT} field="url" />
+            <CopyBtn value={PRODUCTS_ENDPOINT} field="url" />
           </div>
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/80 border border-slate-700/50">
             <span className="text-xs text-slate-500 font-mono">🔗</span>
-            <code className="flex-1 text-sm font-mono text-sky-300 break-all">{SALES_ENDPOINT}</code>
+            <code className="flex-1 text-sm font-mono text-sky-300 break-all">{PRODUCTS_ENDPOINT}</code>
           </div>
           <p className="text-xs text-slate-500 pl-1">Paste this into the <span className="text-slate-300">"API Endpoint URL"</span> field in Bizanolytics.</p>
         </div>
@@ -129,13 +132,12 @@ export default function AdminApiIntegration() {
         <button
           onClick={handleTest}
           disabled={testing}
-          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all duration-200 border ${
-            testResult === 'ok'
+          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all duration-200 border ${testResult === 'ok'
               ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
               : testResult === 'error'
-              ? 'bg-red-500/10 border-red-500/30 text-red-400'
-              : 'bg-slate-700/40 border-slate-600/50 text-slate-200 hover:bg-slate-700/70'
-          }`}
+                ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                : 'bg-slate-700/40 border-slate-600/50 text-slate-200 hover:bg-slate-700/70'
+            }`}
         >
           {testing ? (
             <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />

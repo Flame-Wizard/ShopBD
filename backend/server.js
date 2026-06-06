@@ -48,11 +48,14 @@ app.use(cors({
     process.env.FRONTEND_URL || 'http://localhost:5173',
     'http://localhost:3000',
     'http://localhost:5174',
+    'https://bizanolytics.vercel.app',  // Bizanolytics integration
+    'https://bizanolytics.vercel.app/', // trailing slash variant
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
 }));
+
 
 // Rate limiting for auth routes
 const authLimiter = rateLimit({
