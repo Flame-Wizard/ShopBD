@@ -208,9 +208,44 @@ const importProducts = asyncHandler(async (req, res) => {
         }
 
         if (existingProduct) {
-          // Update the stock if a product stock is changed
+          let hasChanges = false;
+
           if (existingProduct.stock !== p.stock) {
             existingProduct.stock = p.stock;
+            hasChanges = true;
+          }
+          if (existingProduct.price !== p.price) {
+            existingProduct.price = p.price;
+            hasChanges = true;
+          }
+          if (existingProduct.salePrice !== p.salePrice) {
+            existingProduct.salePrice = p.salePrice;
+            hasChanges = true;
+          }
+          if (existingProduct.description !== p.description) {
+            existingProduct.description = p.description;
+            hasChanges = true;
+          }
+          if (existingProduct.brand !== p.brand) {
+            existingProduct.brand = p.brand;
+            hasChanges = true;
+          }
+
+          // Compare images array
+          const newImagesJSON = JSON.stringify(p.images || []);
+          const oldImagesJSON = JSON.stringify(existingProduct.images || []);
+          if (oldImagesJSON !== newImagesJSON) {
+            existingProduct.images = p.images;
+            hasChanges = true;
+          }
+
+          // Update category if different
+          if (String(existingProduct.category) !== String(category._id)) {
+            existingProduct.category = category._id;
+            hasChanges = true;
+          }
+
+          if (hasChanges) {
             await existingProduct.save();
           }
           results.push(existingProduct);
