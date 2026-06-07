@@ -138,27 +138,89 @@ const importProducts = asyncHandler(async (req, res) => {
   const { data } = await axios.get(apiUrl, { headers, timeout: 10000 });
   const raw = Array.isArray(data) ? data : data.products || data.data || [];
 
-  const mapped = raw.map((p) => ({
-    name: p.name || p.title || 'Unknown',
-    slug: (p.name || p.title || 'product').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now(),
-    description: p.description || p.body_html || '',
-    images: p.images?.map((i) => (typeof i === 'string' ? i : i.src || i.url)) || (p.image ? [p.image] : []),
-    price: parseFloat(p.price || p.regular_price || 0),
-    salePrice: parseFloat(p.sale_price || p.salePrice || 0) || null,
-    stock: parseInt(p.stock_quantity || p.stock || 100),
-    brand: p.brand || '',
-  }));
+  const mapped = raw.map((p) => {
+    const skuVal = p.sku || p.id || '';
+    const nameVal = p.name || p.title || 'Unknown';
+    const catVal = p.categoryName || (typeof p.category === 'string' ? p.category : p.category?.name) || 'Uncategorized';
+    
+    return {
+      name: nameVal,
+      sku: skuVal ? String(skuVal) : undefined,
+      categoryName: catVal,
+      description: p.description || p.body_html || '',
+      images: p.images?.map((i) => (typeof i === 'string' ? i : i.src || i.url)) || (p.image ? [p.image] : []),
+      price: parseFloat(p.price || p.regular_price || 0),
+      salePrice: parseFloat(p.sale_price || p.salePrice || 0) || null,
+      stock: parseInt(p.stock_quantity !== undefined ? p.stock_quantity : (p.stock !== undefined ? p.stock : 100)),
+      brand: p.brand || '',
+    };
+  });
 
   if (save) {
-    // Bulk insert — skip duplicates
     const results = [];
+    const processedNames = new Set();
+    const processedSkus = new Set();
+
     for (const p of mapped) {
       try {
-        const created = await Product.create(p);
-        results.push(created);
-      } catch {}
+        // Prevent duplicate processing in the same import batch
+        if (processedNames.has(p.name) || (p.sku && processedSkus.has(p.sku))) {
+          continue;
+        }
+
+        // Find existing product by SKU or name
+        let existingProduct = null;
+        if (p.sku) {
+          existingProduct = await Product.findOne({ sku: p.sku });
+        }
+        if (!existingProduct) {
+          existingProduct = await Product.findOne({ name: { $regex: new RegExp(`^${p.name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') } });
+        }
+
+        // Resolve category
+        const catName = p.categoryName;
+        let category = await Category.findOne({ name: { $regex: new RegExp(`^${catName.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i') } });
+        if (!category) {
+          const slug = catName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          let uniqueSlug = slug || 'uncategorized';
+          let count = 1;
+          while (await Category.findOne({ slug: uniqueSlug })) {
+            uniqueSlug = `${slug}-${count++}`;
+          }
+          category = await Category.create({ name: catName, slug: uniqueSlug });
+        }
+
+        if (existingProduct) {
+          // Update the stock if a product stock is changed
+          if (existingProduct.stock !== p.stock) {
+            existingProduct.stock = p.stock;
+            await existingProduct.save();
+          }
+          results.push(existingProduct);
+        } else {
+          // Set resolved category ID
+          p.category = category._id;
+
+          // Generate a clean unique slug
+          const baseSlug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          let uniqueSlug = baseSlug || 'product';
+          let count = 1;
+          while (await Product.findOne({ slug: uniqueSlug })) {
+            uniqueSlug = `${baseSlug}-${count++}`;
+          }
+          p.slug = uniqueSlug;
+
+          const created = await Product.create(p);
+          results.push(created);
+        }
+
+        processedNames.add(p.name);
+        if (p.sku) processedSkus.add(p.sku);
+      } catch (err) {
+        console.error(`Error importing product ${p.name}:`, err);
+      }
     }
-    return res.json({ success: true, message: `Imported ${results.length} products`, products: results });
+    return res.json({ success: true, message: `Processed ${results.length} products`, products: results });
   }
 
   res.json({ success: true, preview: mapped });
