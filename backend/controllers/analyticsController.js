@@ -36,8 +36,26 @@ const getBizanalyticsProducts = asyncHandler(async (req, res) => {
 
   const endpointUrl = `${req.protocol}://${req.get('host')}/api/analytics/products`;
 
+  // Deduplicate products to prevent duplicates from previous imports
+  const seenIds = new Set();
+  const seenNames = new Set();
+  const uniqueProducts = [];
+
+  for (const p of products) {
+    const idVal = p.sku || p._id.toString();
+    const nameKey = p.name.trim().toLowerCase();
+
+    if (seenIds.has(idVal) || seenNames.has(nameKey)) {
+      continue;
+    }
+
+    seenIds.add(idVal);
+    seenNames.add(nameKey);
+    uniqueProducts.push(p);
+  }
+
   res.json({
-    products: products.map((p) => ({
+    products: uniqueProducts.map((p) => ({
       id: p.sku || p._id.toString(),
       name: p.name,
       price: p.salePrice || p.price,
@@ -51,7 +69,7 @@ const getBizanalyticsProducts = asyncHandler(async (req, res) => {
     meta: {
       source: 'ShopBD',
       currency: 'BDT',
-      totalProducts: products.length,
+      totalProducts: uniqueProducts.length,
       generatedAt: new Date().toISOString(),
     },
   });

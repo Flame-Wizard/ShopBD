@@ -43,7 +43,24 @@ const getProducts = asyncHandler(async (req, res) => {
     .limit(Number(limit));
 
   if (req.query.format === 'integration') {
-    const formatted = products.map((p) => ({
+    const seenIds = new Set();
+    const seenNames = new Set();
+    const uniqueProducts = [];
+
+    for (const p of products) {
+      const idVal = p.sku || String(p._id);
+      const nameKey = p.name.trim().toLowerCase();
+
+      if (seenIds.has(idVal) || seenNames.has(nameKey)) {
+        continue;
+      }
+
+      seenIds.add(idVal);
+      seenNames.add(nameKey);
+      uniqueProducts.push(p);
+    }
+
+    const formatted = uniqueProducts.map((p) => ({
       id: String(p._id),
       name: p.name,
       price: p.salePrice || p.price,
